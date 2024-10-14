@@ -1,56 +1,74 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
 #include <string>
-#include "pixel.h" // Include the pixel.h header
+#include <vector>
+#include "pixel.h"
 
-// Declare your functions and global variables here
 std::vector<Pixel> pixel_list;
 
-void read_pixels_from_file(const std::string &filename, std::vector<Pixel> &pixel_list) {
+void read_pixels(const std::string& filename) {
     std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
     std::string line;
-
     while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        Pixel pixel;
-        char delimiter;
+        std::istringstream iss(line);
+        std::string token;
+        Pixel p;
+        std::getline(iss, token, ',');
+        p.x = std::stoi(token);
+        std::getline(iss, token, ',');
+        p.y = std::stoi(token);
+        std::getline(iss, token, ',');
+        p.r = std::stof(token);
+        std::getline(iss, token, ',');
+        p.g = std::stof(token);
+        std::getline(iss, token);
+        p.b = std::stof(token);
+        pixel_list.push_back(p);
+    }
+    file.close();
+}
 
-        // Extract values from the string and store in pixel object
-        ss >> pixel.x >> delimiter >> pixel.y >> delimiter >> pixel.r >> delimiter >> pixel.g >> delimiter >> pixel.b;
-        // Add pixel to the list
-        pixel_list.push_back(pixel);
+void average_colors(const std::vector<Pixel>& pixel_list) {
+    float avg_r = 0.0f, avg_g = 0.0f, avg_b = 0.0f;
+    for (const auto& pixel : pixel_list) {
+        avg_r += pixel.r;
+        avg_g += pixel.g;
+        avg_b += pixel.b;
+    }
+    int num_pixels = pixel_list.size();
+    avg_r /= num_pixels;
+    avg_g /= num_pixels;
+    avg_b /= num_pixels;
+    std::cout << "Average R: " << avg_r << std::endl;
+    std::cout << "Average G: " << avg_g << std::endl;
+    std::cout << "Average B: " << avg_b << std::endl;
+}
+
+void flip_vertically(std::vector<Pixel>& pixel_list) {
+    int height = 256;
+    int width = 512;
+    for (int i = 0; i < width; ++i) {
+        for (int j = 0; j < height / 2; ++j) {
+            std::swap(pixel_list[j * width + i], pixel_list[(height - 1 - j) * width + i]);
+        }
     }
 }
 
-void average_colors(const std::vector<Pixel> &pixel_list) {
-    float total_r = 0, total_g = 0, total_b = 0;
-    size_t pixel_count = pixel_list.size();
-
-    for (const auto &pixel : pixel_list) {
-        total_r += pixel.r;
-        total_g += pixel.g;
-        total_b += pixel.b;
-    }
-
-    std::cout << "Average R: " << total_r / pixel_count << std::endl;
-    std::cout << "Average G: " << total_g / pixel_count << std::endl;
-    std::cout << "Average B: " << total_b / pixel_count << std::endl;
-}
-
-void flip_vertically(std::vector<Pixel> &pixel_list, int y_length) {
-    for (auto &pixel : pixel_list) {
-        pixel.y = y_length - 1 - pixel.y;
-    }
-}
-
-void save_flipped_pixels_to_file(const std::string &filename, const std::vector<Pixel> &pixel_list) {
+void save_pixels(const std::string& filename, const std::vector<Pixel>& pixel_list) {
     std::ofstream file(filename);
-
-    for (const auto &pixel : pixel_list) {
-        file << pixel.x << ',' << pixel.y << ',' << pixel.r << ',' << pixel.g << ',' << pixel.b << '\n';
+    if (!file.is_open()) {
+        std::cerr << "Error opening file for writing: " << filename << std::endl;
+        return;
     }
+    for (const auto& pixel : pixel_list) {
+        file << pixel.x << "," << pixel.y << "," << pixel.r << "," << pixel.g << "," << pixel.b << std::endl;
+    }
+    file.close();
 }
 
 int main(int argc, char* argv[]) {
@@ -60,14 +78,9 @@ int main(int argc, char* argv[]) {
     }
 
     std::string filename = argv[1];
-    read_pixels_from_file(filename, pixel_list);
-
+    read_pixels(filename);
     average_colors(pixel_list);
-
-    int y_length = 256;  // Given in the assignment
-    flip_vertically(pixel_list, y_length);
-
-    save_flipped_pixels_to_file("flipped.dat", pixel_list);
+    flip_vertically(pixel_list);
+    save_pixels("flipped.dat", pixel_list);
 
     return 0;
-}
